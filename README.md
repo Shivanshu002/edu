@@ -1,97 +1,81 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# PostFeed — React Native Assessment App
 
-# Getting Started
+A production-quality React Native app demonstrating navigation, infinite scroll, search, Redux state management, and local persistence.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+---
 
-## Step 1: Start Metro
+## App Functionality
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+| Screen | Description |
+|---|---|
+| **Posts Feed** | Infinite-scrolling list of posts from JSONPlaceholder API with live search |
+| **Post Detail** | Full post content + author card that navigates to the user profile |
+| **User Profile** | Author details (contact, location, company) |
+| **Bookmarks Tab** | Persisted saved posts, badge count on tab bar |
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+**Key behaviours:**
+- Pull-to-refresh on the feed
+- Search filters title + body client-side (no extra API calls)
+- Bookmarks survive app kill/restart (MMKV storage)
+- Cached posts restore instantly on cold start; stale after 5 min
+- App foreground event triggers a cache-validity check and re-fetches if stale
+
+---
+
+## How to Run
 
 ```sh
-# Using npm
+# 1. Install JS dependencies
+npm install
+
+# 2. iOS only — install native pods
+cd ios && bundle exec pod install && cd ..
+
+# 3. Start Metro
 npm start
 
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
+# 4a. Android
 npm run android
 
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+# 4b. iOS
 npm run ios
-
-# OR using Yarn
-yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+> Requires React Native CLI environment. See https://reactnative.dev/docs/set-up-your-environment
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+---
 
-## Step 3: Modify your app
+## Key Technical Decisions
 
-Now that you have successfully run the app, let's make changes!
+### Redux Toolkit (RTK)
+Used `createSlice` + `createAsyncThunk` for all async data flows. Three slices:
+- `postsSlice` — paginated list, search filter, cache TTL
+- `usersSlice` — per-user cache (avoids re-fetching the same user)
+- `bookmarksSlice` — toggle + persist on every change
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+### AsyncStorage for Persistence
+`@react-native-async-storage/async-storage` persists posts and bookmarks. On app start, `loadCachedPosts` and `loadCachedBookmarks` thunks rehydrate Redux state before the first API call — restoring content instantly after a kill/restart.
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+### FlatList Performance
+`removeClippedSubviews`, `maxToRenderPerBatch=10`, `windowSize=10`, `initialNumToRender=10`, and `memo`-wrapped `PostCard` prevent unnecessary re-renders on a 100-item list.
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+### Search — Client-side
+All 100 posts are loaded page-by-page. Search runs against the in-memory Redux store so results are instant with no debounce needed. Pagination is paused while a search query is active.
 
-## Congratulations! :tada:
+### App Lifecycle
+`AppState` listener in `PostsScreen` detects foreground transitions and re-fetches only when the 5-minute cache TTL has expired.
 
-You've successfully run and modified your React Native App. :partying_face:
+### Navigation
+`@react-navigation/stack` (modal-style transitions) wraps a `@react-navigation/bottom-tabs` navigator. Stack lives outside the tabs so `PostDetail` and `UserProfile` push over the tab bar.
 
-### Now what?
+---
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+## Improvements With More Time
 
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+1. **Offline indicator** — banner when the device has no network, queue retries
+2. **Optimistic bookmark toggle** — already instant, but could add undo snackbar
+3. **Skeleton loaders** — replace spinner with shimmer placeholders for perceived performance
+4. **Unit tests** — RTK slice reducers are pure functions; easy to test with Jest
+5. **Error boundary** — catch unexpected render errors gracefully
+6. **Accessibility** — `accessibilityLabel` on all interactive elements
+7. **Dark mode** — colour tokens via a theme context
