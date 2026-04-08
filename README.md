@@ -45,7 +45,7 @@ npm run ios
 
 ---
 
-## How Redux Works in This App (Plain English)
+## How Redux Works in This App 
 
 Think of Redux as a single shared notebook that every screen in the app can read from and write to. Instead of each screen keeping its own copy of data, they all look at the same notebook — so everything stays in sync.
 
