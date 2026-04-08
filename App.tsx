@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -6,14 +6,24 @@ import { store } from './src/redux/store';
 import { loadCachedPosts } from './src/redux/thunks/postThunk';
 import { loadCachedBookmarks } from './src/redux/thunks/bookmarkThunk';
 import RootNavigator from './src/navigation/RootNavigator';
+import SplashScreen from './src/components/SplashScreen';
 
 function AppBootstrap() {
+  const [showSplash, setShowSplash] = useState(true);
+
   useEffect(() => {
-    store.dispatch(loadCachedPosts());
-    store.dispatch(loadCachedBookmarks());
+    Promise.all([
+      store.dispatch(loadCachedPosts()),
+      store.dispatch(loadCachedBookmarks()),
+    ]);
   }, []);
 
-  return <RootNavigator />;
+  return (
+    <>
+      <RootNavigator />
+      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+    </>
+  );
 }
 
 export default function App() {
